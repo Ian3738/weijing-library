@@ -592,17 +592,24 @@
       if (save.mode === "online" && window.COOP && COOP.active) COOP.syncSolved(save.solved);
       modal({ title: room.person, img: room.portrait, descHtml: (d.solved ? d.solved + "\n\n" : "") + room.success, closeLabel: "繼續", onClose: () => showEgg(showReflection) });
     }
-    // 彩蛋：門開之後，書縫裡掉出一張泛黃書籤，寫著這位人物的真實小故事
+    // 彩蛋：門開之後，先由角色對話窗帶一拍，再掉出泛黃書籤（貼著人物拍立得＋真實小故事）
     function showEgg(then) {
       if (!room.egg) { then(); return; }
+      setStatus("書頁的縫隙裡，滑出了一張泛黃的書籤……");   // 底部角色對話窗（立繪在旁）先出現
       A.sfx("search");
-      const card = el("div", { class: "egg-card" },
-        el("div", { class: "egg-head" }, "📖 彩蛋 · 書縫裡掉出一張泛黃的書籤"),
-        el("div", { class: "egg-body" }, room.egg),
-        el("div", { class: "egg-acts" }, el("button", { class: "btn", onclick: () => { A.sfx("pickup"); back.remove(); then(); } }, "收進口袋")));
-      const back = el("div", { class: "er-modal" }, card);
-      scrEl.appendChild(back);
-      if (!REDUCED && window.gsap) gsap.from(card, { y: -32, rotation: -3, opacity: 0, duration: 0.7, ease: "power2.out" });
+      setTimeout(() => {
+        const photo = el("figure", { class: "egg-photo" },
+          el("img", { src: room.portrait, alt: room.person }),
+          el("figcaption", {}, room.person));
+        const card = el("div", { class: "egg-card" },
+          el("div", { class: "egg-head" }, "📖 彩蛋 · 關於 " + room.person + " 的一段真事"),
+          photo,
+          el("div", { class: "egg-body" }, room.egg),
+          el("div", { class: "egg-acts" }, el("button", { class: "btn", onclick: () => { A.sfx("pickup"); back.remove(); then(); } }, "收進口袋")));
+        const back = el("div", { class: "er-modal" }, card);
+        scrEl.appendChild(back);
+        if (!REDUCED && window.gsap) gsap.from(card, { y: -32, rotation: -3, opacity: 0, duration: 0.7, ease: "power2.out" });
+      }, REDUCED ? 250 : 1500);
     }
     // 學科門解開後的「心門」：一題情意題，答對才真正過關
     function showAffective(onPass) {

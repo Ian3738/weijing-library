@@ -648,3 +648,11 @@ table.payoff th{color:var(--gold-soft);background:rgba(230,179,92,.08);letter-sp
 .ending-time{opacity:0;animation:lineIn 1s ease forwards;color:var(--gold-soft);letter-spacing:.12em;margin-top:1.3rem;
   text-shadow:0 2px 12px rgba(0,0,0,.85)}
 @media (max-width:600px){ .egg-card{padding:1.1rem 1.2rem 1rem} .egg-body{font-size:.95rem;line-height:1.9} }
+
+/* 彩蛋書籤上的人物拍立得（泛黃濾鏡＋白框＋微傾斜） */
+.egg-photo{float:right;width:92px;margin:0 0 .5rem .9rem;padding:6px 6px 4px;
+  background:#fbf6ea;border:1px solid rgba(120,90,40,.28);
+  box-shadow:0 6px 16px rgba(0,0,0,.28);transform:rotate(2.4deg)}
+.egg-photo img{display:block;width:100%;filter:sepia(.3) contrast(.95) saturate(.9)}
+.egg-photo figcaption{text-align:center;font-size:.72rem;color:#7a5f2e;letter-spacing:.08em;padding-top:.25rem}
+@media (max-width:600px){ .egg-photo{width:74px;margin-left:.6rem} }
