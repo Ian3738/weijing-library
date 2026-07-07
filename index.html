@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>圖書館熄燈後 · 情意密室逃脫</title>
+<meta name="theme-color" content="#0c0a08">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app"></div>
+  <canvas id="dust"></canvas>
+  <div class="vignette"></div>
+  <div class="grain"></div>
+  <script src="data.js"></script>
+  <script src="audio.js"></script>
+  <script src="vendor/gsap.min.js"></script>
+  <script type="module" src="coop.js"></script>
+  <script src="game.js"></script>
+  <script>
+    // PWA：上線環境才註冊 Service Worker（本機開發不註冊，避免快取干擾預覽除錯）
+    if ("serviceWorker" in navigator && !/^(localhost|127\.|0\.0\.0\.0)/.test(location.hostname)) {
+      addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+    }
+  </script>
+</body>
+</html>

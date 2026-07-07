@@ -1,0 +1,17 @@
+{
+  "name": "圖書館熄燈後 · 情意密室逃脫",
+  "short_name": "圖書館熄燈後",
+  "description": "十位人物、十道心門。一場給科學資優班情意發展課程的心靈密室逃脫。",
+  "lang": "zh-Hant",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0c0a08",
+  "theme_color": "#0c0a08",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

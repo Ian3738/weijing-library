@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>老師後台 · 反思回收 — 圖書館熄燈後</title>
+<style>
+  :root{ --ink:#0b0910; --panel:#161120; --gold:#e6b35c; --gold-soft:#f3d59a;
+         --parch:#efe6cf; --parch-dim:#c4b896; --teal:#7ad7c7; --rose:#e58b78; --line:rgba(230,179,92,.3); }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ink);color:var(--parch);font-family:"Noto Serif TC","Songti TC",serif;padding:2rem 1.2rem;line-height:1.6}
+  .wrap{max-width:1200px;margin:0 auto}
+  h1{font-size:1.6rem;color:var(--gold-soft);letter-spacing:.06em;margin:0 0 .3rem}
+  .sub{color:var(--parch-dim);margin:0 0 1.4rem;font-size:.95rem}
+  .bar{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:1.2rem}
+  input{font-family:inherit;font-size:1rem;color:var(--parch);background:rgba(0,0,0,.4);
+        border:1px solid var(--gold);border-radius:5px;padding:.55em 1em;outline:none;letter-spacing:.1em;width:min(260px,70vw)}
+  button{font-family:inherit;font-size:1rem;font-weight:600;letter-spacing:.08em;cursor:pointer;
+         color:var(--ink);background:linear-gradient(180deg,var(--gold-soft),var(--gold));border:none;border-radius:5px;padding:.55em 1.4em}
+  button.ghost{background:transparent;color:var(--gold-soft);box-shadow:0 0 0 1px var(--line) inset}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  #status{color:var(--parch-dim);font-size:.9rem;letter-spacing:.04em}
+  #status.err{color:var(--rose)} #status.ok{color:var(--teal)}
+  .empty{color:var(--parch-dim);padding:2rem 0;text-align:center}
+  table{border-collapse:collapse;width:100%;font-size:.86rem;margin-top:.5rem}
+  th,td{border:1px solid var(--line);padding:.5rem .6rem;vertical-align:top;text-align:left}
+  th{background:rgba(230,179,92,.1);color:var(--gold-soft);letter-spacing:.04em;position:sticky;top:0;white-space:nowrap}
+  td.nm{color:var(--gold-soft);font-weight:600;white-space:nowrap;position:sticky;left:0;background:var(--panel)}
+  td.ct{text-align:center;color:var(--teal);white-space:nowrap}
+  tbody tr:nth-child(even){background:rgba(255,255,255,.02)}
+  .scroll{overflow:auto;max-height:78vh;border:1px solid var(--line);border-radius:6px}
+  .hint{color:var(--parch-dim);font-size:.85rem;margin-top:1rem;line-height:1.9}
+  .hint code{color:var(--gold-soft);background:rgba(0,0,0,.4);padding:.1em .4em;border-radius:3px}
+  #linkbox{display:none;margin:0 0 1.2rem;padding:.9rem 1.1rem;background:rgba(122,215,199,.08);border:1px solid var(--teal);border-radius:6px}
+  #linkbox .url{margin:.4rem 0 .7rem;word-break:break-all;font-size:1.02rem}
+  #linkbox a{color:var(--teal)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>老師後台 · 反思回收</h1>
+  <p class="sub">輸入課堂代碼，看全班學生在《圖書館熄燈後》各關寫下的反思，可一鍵匯出 CSV。</p>
+  <div class="bar">
+    <input id="code" placeholder="課堂代碼（自己取，例如 六甲）" maxlength="20" autocomplete="off">
+    <button id="link">產生學生連結</button>
+    <button id="go">看全班反思</button>
+    <button id="csv" class="ghost" disabled>匯出 CSV</button>
+    <span id="status"></span>
+  </div>
+  <div id="linkbox"></div>
+  <div id="out"></div>
+  <div class="hint">
+    <b>怎麼用（三步）：</b><br>
+    ① 在上面打一個課堂代碼（自己取，例如 <code>六甲</code>）→ 按「<b>產生學生連結</b>」→ 把連結貼給全班學生。<br>
+    ② 學生點開連結玩，每一關的反思會<b>自動上傳</b>（單人或分組都可以，全部收到同一個課堂）。<br>
+    ③ 回到這裡按「<b>看全班反思</b>」，就能看到大家寫的，再「匯出 CSV」。
+  </div>
+</div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+  const cfg = {
+    apiKey: "AIzaSyDCB2QM3b2pjg9Fl1X-jyPpTJogomPeQNE",
+    authDomain: "library-b7245.firebaseapp.com",
+    databaseURL: "https://library-b7245-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "library-b7245",
+    storageBucket: "library-b7245.firebasestorage.app",
+    messagingSenderId: "1025675639433",
+    appId: "1:1025675639433:web:e140b4360f01294fece458"
+  };
+  const db = getDatabase(initializeApp(cfg));
+  // 關卡清單(欄位順序＝位置，id＝反思鍵；注意達文西/尤拉/法拉第/司馬遷的 id 不照順序)
+  const rooms = [
+    { id: 1, label: "1. 羅琳" }, { id: 2, label: "2. 達爾文" }, { id: 3, label: "3. 拉馬努金" },
+    { id: 4, label: "4. 居禮夫人" }, { id: 5, label: "5. 費曼" }, { id: 6, label: "6. 納許" },
+    { id: 8, label: "7. 達文西" }, { id: 9, label: "8. 尤拉" }, { id: 10, label: "9. 法拉第" }, { id: 7, label: "10. 司馬遷" }
+  ];
+  const $ = id => document.getElementById(id);
+  const san = s => String(s || "").trim().replace(/[.#$\[\]\/ -]/g, "_").slice(0, 60);
+  const esc = s => String(s == null ? "" : s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  let lastStudents = null, lastCode = "";
+
+  function students(data){ return Object.keys(data || {}).map(k => data[k]).sort((a, b) => String(a.name||"").localeCompare(String(b.name||""), "zh-Hant")); }
+
+  async function load(){
+    const code = san($("code").value);
+    if (!code) { setStatus("請輸入課堂代碼", "err"); return; }
+    setStatus("讀取中…"); $("csv").disabled = true;
+    try {
+      const snap = await get(ref(db, "sessions/c_" + code));
+      const list = students(snap.val());
+      lastStudents = list; lastCode = code;
+      render(list, code);
+    } catch (e) { setStatus("讀取失敗：" + (e.code || e.message), "err"); }
+  }
+  function render(list, code){
+    const out = $("out");
+    if (!list.length) { out.innerHTML = "<p class='empty'>課堂「" + esc(code) + "」目前沒有任何繳交。</p>"; setStatus(""); $("csv").disabled = true; return; }
+    setStatus(list.length + " 人已繳交", "ok"); $("csv").disabled = false;
+    let h = "<div class='scroll'><table><thead><tr><th>姓名/座號</th>";
+    rooms.forEach(r => h += "<th>" + esc(r.label) + "</th>");
+    h += "<th>結語</th><th>進度</th></tr></thead><tbody>";
+    list.forEach(s => {
+      h += "<tr><td class='nm'>" + esc(s.name) + "</td>";
+      rooms.forEach(r => h += "<td>" + esc((s.reflections && s.reflections[r.id]) || "") + "</td>");
+      h += "<td>" + esc(s.final || "") + "</td><td class='ct'>" + (s.solved || 0) + "/" + rooms.length + "</td></tr>";
+    });
+    out.innerHTML = h + "</tbody></table></div>";
+  }
+  function exportCsv(){
+    if (!lastStudents || !lastStudents.length) return;
+    const head = ["姓名/座號", ...rooms.map(r => r.label), "結語", "進度"];
+    const rows = [head];
+    lastStudents.forEach(s => {
+      const row = [s.name || ""];
+      rooms.forEach(r => row.push((s.reflections && s.reflections[r.id]) || ""));
+      row.push(s.final || ""); row.push((s.solved || 0) + "/" + rooms.length);
+      rows.push(row);
+    });
+    const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(",")).join("\r\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = "課堂反思_" + lastCode + ".csv"; document.body.appendChild(a); a.click();
+    setTimeout(() => { a.remove(); URL.revokeObjectURL(a.href); }, 200);
+  }
+  function setStatus(t, cls){ const s = $("status"); s.textContent = t; s.className = cls || ""; }
+  function showLink(){
+    const code = ($("code").value || "").trim();
+    if (!code) { setStatus("請先輸入課堂代碼", "err"); return; }
+    const url = location.origin + location.pathname.replace(/teacher\.html$/, "") + "?class=" + encodeURIComponent(code);
+    const box = $("linkbox"); box.style.display = "block";
+    box.innerHTML = "把這條連結貼給全班學生：<div class='url'><a href='" + url + "' target='_blank'>" + esc(url) + "</a></div>";
+    const b = document.createElement("button"); b.textContent = "複製連結"; b.className = "ghost";
+    b.onclick = () => { navigator.clipboard.writeText(url).then(() => setStatus("✓ 已複製，貼給學生即可", "ok"), () => setStatus("複製失敗，請手動選取網址", "err")); };
+    box.appendChild(b); setStatus("");
+  }
+  $("go").onclick = load; $("link").onclick = showLink; $("csv").onclick = exportCsv;
+  $("code").addEventListener("keydown", e => { if (e.key === "Enter") load(); });
+</script>
+</body>
+</html>

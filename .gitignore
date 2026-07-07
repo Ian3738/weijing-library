@@ -1,0 +1,26 @@
+# 這個資料夾是共用的（還有其他專案），所以採「白名單」：
+# 預設忽略所有東西，只發佈《未竟之夢圖書館》遊戲本體。
+/*
+
+# ↓ 只放行這個遊戲需要的檔案
+!/index.html
+!/teacher.html
+!/style.css
+!/game.js
+!/data.js
+!/audio.js
+!/coop.js
+!/README.md
+!/.nojekyll
+!/.gitignore
+!/images/
+!/bgm/
+!/vendor/
+!/manifest.json
+!/sw.js
+!/icons/
+
+# images/ 裡的原圖備份不要上線
+images/_orig/
+
+# （.env、.claude、iOS版、DD2P、Pixel Clash.mp3、_extracted… 全部維持被忽略）
