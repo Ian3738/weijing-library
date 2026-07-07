@@ -99,22 +99,23 @@
     setStatus(list.length + " 人已繳交", "ok"); $("csv").disabled = false;
     let h = "<div class='scroll'><table><thead><tr><th>姓名/座號</th>";
     rooms.forEach(r => h += "<th>" + esc(r.label) + "</th>");
-    h += "<th>結語</th><th>進度</th></tr></thead><tbody>";
+    h += "<th>結語</th><th>進度</th><th>時間</th></tr></thead><tbody>";
     list.forEach(s => {
       h += "<tr><td class='nm'>" + esc(s.name) + "</td>";
       rooms.forEach(r => h += "<td>" + esc((s.reflections && s.reflections[r.id]) || "") + "</td>");
-      h += "<td>" + esc(s.final || "") + "</td><td class='ct'>" + (s.solved || 0) + "/" + rooms.length + "</td></tr>";
+      h += "<td>" + esc(s.final || "") + "</td><td class='ct'>" + (s.solved || 0) + "/" + rooms.length + "</td>"
+         + "<td class='ct'>" + (s.mins ? s.mins + " 分" : "—") + "</td></tr>";
     });
     out.innerHTML = h + "</tbody></table></div>";
   }
   function exportCsv(){
     if (!lastStudents || !lastStudents.length) return;
-    const head = ["姓名/座號", ...rooms.map(r => r.label), "結語", "進度"];
+    const head = ["姓名/座號", ...rooms.map(r => r.label), "結語", "進度", "時間(分)"];
     const rows = [head];
     lastStudents.forEach(s => {
       const row = [s.name || ""];
       rooms.forEach(r => row.push((s.reflections && s.reflections[r.id]) || ""));
-      row.push(s.final || ""); row.push((s.solved || 0) + "/" + rooms.length);
+      row.push(s.final || ""); row.push((s.solved || 0) + "/" + rooms.length); row.push(s.mins != null ? s.mins : "");
       rows.push(row);
     });
     const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(",")).join("\r\n");

@@ -35,6 +35,19 @@
   function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
   // 老師用 ?class=代碼 連結：全班(含單人)反思都自動收到同一個課堂，免學生打字
   (() => { try { const c = new URLSearchParams(location.search).get("class"); if (c && c.trim()) { save.classCode = c.trim().slice(0, 20); persist(); } } catch (e) {} })();
+
+  /* ---------- 遊戲計時：累計「實際遊玩」時間（頁面可見才計；跨重載累計；到結局就凍結） ---------- */
+  function markStarted() { if (!save.started) { save.started = true; save.playMs = save.playMs || 0; persist(); } }
+  function playedMs() { return save.doneMs != null ? save.doneMs : (save.playMs || 0); }
+  function fmtDur(ms) { const m = Math.round(ms / 60000); if (m < 1) return "不到一分鐘"; if (m < 60) return m + " 分鐘"; return Math.floor(m / 60) + " 小時 " + (m % 60) + " 分鐘"; }
+  (() => {
+    let last = Date.now();
+    setInterval(() => {
+      const now = Date.now();
+      if (save.started && save.doneMs == null && !document.hidden) { save.playMs = (save.playMs || 0) + (now - last); persist(); }
+      last = now;
+    }, 5000);
+  })();
   const solvedSet = () => new Set(save.solved);
   let onlineStarted = false, onlineReflRefresh = null, onlinePresenceRefresh = null;
 
@@ -147,6 +160,7 @@
     if (save.mode && save.mode !== "solo") L.push("夥伴：" + (save.players || []).filter(Boolean).join("、"));
     L.push("模式：" + (MODE_TXT[save.mode] || save.mode || "單人"));
     L.push("完成房間：" + (save.solved ? save.solved.length : 0) + " / " + GAME.rooms.length);
+    L.push("遊戲時間：" + fmtDur(playedMs()));
     L.push("匯出時間：" + new Date().toLocaleString("zh-TW"));
     L.push("==================================================");
     GAME.rooms.forEach(r => {
@@ -189,7 +203,7 @@
   function autoSubmitClass() {                       // 課堂模式：自動把反思上傳給老師(靜默)
     if (!save.classCode || !save.studentName || !(window.COOP && COOP.available)) return;
     const o = reflectionsObj();
-    COOP.uploadClass(save.classCode, { name: save.studentName, mode: save.mode, solved: (save.solved || []).length, reflections: o.reflections, final: o.final });
+    COOP.uploadClass(save.classCode, { name: save.studentName, mode: save.mode, solved: (save.solved || []).length, mins: Math.round(playedMs() / 60000), reflections: o.reflections, final: o.final });
   }
   function ensureStudentName(cb) {                   // 課堂模式但還沒留名 → 只問一次名字
     if (!save.classCode || save.studentName) { cb(); return; }
@@ -219,7 +233,7 @@
       status.className = "r-count"; status.textContent = "上傳中…";
       save.studentName = nm; save.classCode = code; persist();
       const o = reflectionsObj();
-      const r = await COOP.uploadClass(code, { name: nm, mode: save.mode, solved: (save.solved || []).length, reflections: o.reflections, final: o.final });
+      const r = await COOP.uploadClass(code, { name: nm, mode: save.mode, solved: (save.solved || []).length, mins: Math.round(playedMs() / 60000), reflections: o.reflections, final: o.final });
       if (r.ok) { status.className = "r-count ok"; status.textContent = "✓ 已繳交到課堂「" + code + "」"; A.sfx("fragment"); }
       else { status.className = "r-count"; status.textContent = "✗ 繳交失敗：" + (r.err || "請稍候再試一次"); }
     }
@@ -391,6 +405,7 @@
 
   /* ===================== 開場 ===================== */
   function openingScreen() {
+    markStarted();
     A.ambient("dust"); A.music(true, "default");
     showScreen(GAME.openingBg, scr => {
       scr.classList.add("narration-screen");
@@ -405,6 +420,7 @@
 
   /* ===================== 大廳 ===================== */
   function hallScreen() {
+    markStarted();
     A.stopAmbient(); A.ambient("dust"); A.music(true, "default");
     const s = solvedSet();
     showScreen(GAME.hallBg, scr => {
@@ -574,7 +590,19 @@
       flash(); fragPop(); A.sfx("fragment");
       if (!save.solved.includes(room.id)) save.solved.push(room.id); persist();
       if (save.mode === "online" && window.COOP && COOP.active) COOP.syncSolved(save.solved);
-      modal({ title: room.person, img: room.portrait, descHtml: (d.solved ? d.solved + "\n\n" : "") + room.success, closeLabel: "繼續", onClose: showReflection });
+      modal({ title: room.person, img: room.portrait, descHtml: (d.solved ? d.solved + "\n\n" : "") + room.success, closeLabel: "繼續", onClose: () => showEgg(showReflection) });
+    }
+    // 彩蛋：門開之後，書縫裡掉出一張泛黃書籤，寫著這位人物的真實小故事
+    function showEgg(then) {
+      if (!room.egg) { then(); return; }
+      A.sfx("search");
+      const card = el("div", { class: "egg-card" },
+        el("div", { class: "egg-head" }, "📖 彩蛋 · 書縫裡掉出一張泛黃的書籤"),
+        el("div", { class: "egg-body" }, room.egg),
+        el("div", { class: "egg-acts" }, el("button", { class: "btn", onclick: () => { A.sfx("pickup"); back.remove(); then(); } }, "收進口袋")));
+      const back = el("div", { class: "er-modal" }, card);
+      scrEl.appendChild(back);
+      if (!REDUCED && window.gsap) gsap.from(card, { y: -32, rotation: -3, opacity: 0, duration: 0.7, ease: "power2.out" });
     }
     // 學科門解開後的「心門」：一題情意題，答對才真正過關
     function showAffective(onPass) {
@@ -820,6 +848,9 @@
         const msg = el("div", { class: "ending-msg" });
         GAME.rooms.forEach((r, k) => { if (r.line) msg.appendChild(el("div", { class: "em-line", style: `animation-delay:${0.7 + k * 0.3}s` }, r.line)); });
         wrap.appendChild(msg);
+        // 揭曉總遊戲時間（第一次走到結局就凍結，之後重看不再累計）
+        if (save.doneMs == null) { save.doneMs = save.playMs || 0; persist(); }
+        wrap.appendChild(el("div", { class: "ending-time", style: `animation-delay:${0.7 + GAME.rooms.length * 0.3 + 0.35}s` }, "⏱ 這趟心靈逃脫，你走了 " + fmtDur(playedMs())));
         const btnRow = el("div", { style: "margin-top:1.7rem;text-align:center;opacity:0;transition:opacity 1.2s ease;pointer-events:none" },
           el("button", { class: "btn", onclick: () => { A.sfx("click"); titleScreen(); } }, GAME.ending.finalButton),
           el("button", { class: "btn ghost", style: "margin-left:.6rem", onclick: () => { A.sfx("click"); exportReflections(); } }, "📄 匯出反思紀錄"));

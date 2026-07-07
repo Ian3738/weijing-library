@@ -631,3 +631,20 @@ table.payoff th{color:var(--gold-soft);background:rgba(230,179,92,.08);letter-sp
     animation-iteration-count:1 !important;transition-duration:.12s !important;scroll-behavior:auto !important}
   .cover-mist,.sc-cover::before,.er-fx,.er-fx *{animation:none !important}
 }
+
+/* ===========================================================
+   過關彩蛋：泛黃書籤（人物幕後小故事）＋ 結局時間揭曉
+   =========================================================== */
+.egg-card{position:relative;max-width:560px;width:min(560px,92vw);margin:auto;
+  background:linear-gradient(178deg,#f3e7ca 0%,#ead8b0 100%);color:#43351d;
+  border-radius:4px;padding:1.5rem 1.7rem 1.2rem;transform:rotate(-.8deg);
+  box-shadow:0 24px 70px rgba(0,0,0,.7),0 2px 0 rgba(255,255,255,.35) inset;
+  font-family:var(--serif);max-height:82vh;overflow:auto}
+.egg-card::before{content:"";position:absolute;top:-7px;left:50%;width:92px;height:16px;
+  transform:translateX(-50%) rotate(1.6deg);background:rgba(214,186,120,.55);box-shadow:0 1px 3px rgba(0,0,0,.25)} /* 一截膠帶 */
+.egg-head{font-size:.82rem;letter-spacing:.18em;color:#8a6c33;margin-bottom:.7rem}
+.egg-body{line-height:2;font-size:1.02rem;letter-spacing:.03em;white-space:pre-line}
+.egg-acts{text-align:right;margin-top:1rem}
+.ending-time{opacity:0;animation:lineIn 1s ease forwards;color:var(--gold-soft);letter-spacing:.12em;margin-top:1.3rem;
+  text-shadow:0 2px 12px rgba(0,0,0,.85)}
+@media (max-width:600px){ .egg-card{padding:1.1rem 1.2rem 1rem} .egg-body{font-size:.95rem;line-height:1.9} }
